@@ -21,13 +21,6 @@ class Player
             map.Cells.Add(line.ToList());
         }
         // affichage map
-        for (int i = 0; i < map.Cells.Count; i++)
-        {
-            for (int j = 0; j < map.Cells[i].Count; j++)
-            {
-                System.Console.Error.WriteLine("i:" + i + " j:"+ j + " " + map.Cells[i][j]);    
-            }
-        }
         map.Cells.ForEach(l => 
         {
             System.Console.Error.WriteLine(string.Join("",l));
@@ -52,32 +45,36 @@ class Player
         });
 
         var myRobot = map.Robots.FirstOrDefault();
-        // try go to the right
-        if(map.Cells[myRobot.Y][myRobot.X+1] == CellEmpty)
-        {
-            myRobot.Direction = "R";
-            myRobot.X++;
-        }
-        // try go to the down
-        else if(map.Cells[myRobot.Y+1][myRobot.X] == CellEmpty)
-        {
-            myRobot.Direction = "D";
-            myRobot.Y++;
-        }
-        // try go to the left
-        else if(map.Cells[myRobot.Y][myRobot.X-1] == CellEmpty)
-        {
-            myRobot.Direction = "L";
-            myRobot.X--;
-        }
-        // try go to the up
-        else if(map.Cells[myRobot.Y-1][myRobot.X] == CellEmpty)
-        {
-            myRobot.Direction = "U";
-            myRobot.Y--;
-        }
         
-        Console.WriteLine(myRobot.DisplayDirection());
+        string direction = "";
+        int nbEmptyCells = map.Cells.Select(c => c.Equals(CellEmpty)).ToList().Count();
+
+        for (int i = 0; i < nbEmptyCells; i++)
+        {
+            // try go to the right
+            if(myRobot.PossibleToGoToRight(map))
+            {
+                myRobot.Direction = "R";
+            }
+            // try go to the down
+            else if(myRobot.PossibleToGoToDown(map))
+            {
+                myRobot.Direction = "D";
+            }
+            // try go to the left
+            else if(myRobot.PossibleToGoToLeft(map))
+            {
+                myRobot.Direction = "L";
+            }
+            // try go to the up
+            else if(myRobot.PossibleToGoToUp(map))
+            {
+                myRobot.Direction = "U";
+            }    
+            direction += myRobot.DisplayDirection() + " ";
+            myRobot.Move();
+        }
+        Console.WriteLine(direction.Trim());    
     }
     const char CellVoid = '#';
     const char CellEmpty = '.';
@@ -104,9 +101,49 @@ class Player
             return "ID :"+ ID + " X :" + X + " Y :" + Y + " Direction :" + Direction;
         }
         // return direction string with coord
+        public void Move()
+        {
+            switch (Direction)
+            {
+                case "R":
+                    X++;
+                break;
+                case "L":
+                    X--;
+                break;
+                case "U":
+                    Y--;
+                break;
+                case "D":
+                    Y++;
+                break;
+                default:
+                break;
+            }
+        }
         public string DisplayDirection()
         {
             return X + " " + Y + " " + Direction;
+        }
+        // possible to go to the right
+        public bool PossibleToGoToRight(Map map)
+        {
+            return map.Cells[Y][X+1] == CellEmpty;
+        }
+        // possible to go to the left
+        public bool PossibleToGoToLeft(Map map)
+        {
+            return map.Cells[Y][X-1] == CellEmpty;
+        }
+        // possible to go to the up
+        public bool PossibleToGoToUp(Map map)
+        {
+            return map.Cells[Y-1][X] == CellEmpty;
+        }
+        // possible to go to the down
+        public bool PossibleToGoToDown(Map map)
+        {
+            return map.Cells[Y+1][X] == CellEmpty;
         }
     }
 }
