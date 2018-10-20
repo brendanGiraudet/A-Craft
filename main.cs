@@ -49,9 +49,14 @@ class Player
         
         string direction = "";
         int nbEmptyCells = map.Cells.Select(c => c.Equals(CellEmpty)).ToList().Count();
-
-        for (int i = 0; i < nbEmptyCells; i++)
+        var IspossibleToMove = true;
+        do
         {
+            IspossibleToMove = map.PossibleToGoToRight(myRobot) 
+                || map.PossibleToGoToLeft(myRobot)
+                || map.PossibleToGoToUp(myRobot)
+                || map.PossibleToGoToDown(myRobot);
+        
             // try go to the right
             if(map.PossibleToGoToRight(myRobot))
             {
@@ -74,7 +79,8 @@ class Player
             }    
             direction += myRobot.DisplayDirection() + " ";
             myRobot.Move();
-        }
+        } while (IspossibleToMove);
+
         Console.WriteLine(direction.Trim());    
     }
     const char CellVoid = '#';
