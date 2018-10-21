@@ -39,52 +39,30 @@ class Player
             robot.Coordonates.Y = int.Parse(inputs[1]);
             map.Robots.Add(robot);
         }
-        // affichage robots
-        map.Robots.ForEach(r => 
-        {
-            System.Console.Error.WriteLine(r);
-        });
         //Recuperation de mon robot
         var myRobot = map.Robots.FirstOrDefault();
-        
-        string direction = "";
-        int nbEmptyCells = map.Cells.Select(c => c.Equals(CellEmpty)).ToList().Count();
-        var IspossibleToMove = true;
-        do
+        var direction = "";
+        // premier mouvement a gerer
+        if(map.NeedToChangeDirection(myRobot))
         {
-            IspossibleToMove = map.PossibleToGoToRight(myRobot) 
-                || map.PossibleToGoToLeft(myRobot)
-                || map.PossibleToGoToUp(myRobot)
-                || map.PossibleToGoToDown(myRobot);
-        
-            // try go to the right
-            if(map.PossibleToGoToRight(myRobot))
-            {
-                myRobot.Direction = "R";
-            }
-            // try go to the down
-            else if(map.PossibleToGoToDown(myRobot))
-            {
-                myRobot.Direction = "D";
-            }
-            // try go to the left
-            else if(map.PossibleToGoToLeft(myRobot))
-            {
-                myRobot.Direction = "L";
-            }
-            // try go to the up
-            else if(map.PossibleToGoToUp(myRobot))
-            {
-                myRobot.Direction = "U";
-            }    
-            direction += myRobot.DisplayDirection() + " ";
-            myRobot.Move();
-        } while (IspossibleToMove);
+            map.ChangeToGoodDirection(myRobot);
+            direction = myRobot.DisplayDirection() + " ";
+        }
+        System.Console.Error.WriteLine(myRobot);
+        var path = map.SearchBestPath(myRobot,new List<Robot>());
+        path.ForEach( r => 
+        {
+            direction += r.DisplayDirection() + " ";
+        });
 
         Console.WriteLine(direction.Trim());    
     }
     const char CellVoid = '#';
     const char CellEmpty = '.';
+    const char CellUp = 'U';
+    const char CellDown = 'D';
+    const char CellLeft = 'L';
+    const char CellRight = 'R';
     
     class Map
     {
@@ -92,10 +70,62 @@ class Player
         public List<List<char>> Cells { get; set; } = new List<List<char>>();
         // Liste des robots
         public List<Robot> Robots { get; set; } = new List<Robot>();
+        // check if need to change direction
+        public bool NeedToChangeDirection(Robot robot)
+        {
+            var newRobot = robot.Clone() as Robot;
+            newRobot.Move();
+            return !IsPossibleToMove(newRobot.Coordonates);
+        }
+        // oriente robot
+        public void ChangeToGoodDirection(Robot robot)
+        {
+            if(PossibleToGoToRight(robot))
+            {
+                robot.Direction = "R";
+            }
+            else if(PossibleToGoToLeft(robot))
+            {
+                robot.Direction = "L";
+            }
+            else if(PossibleToGoToUp(robot))
+            {
+                robot.Direction = "U";
+            }
+            else if(PossibleToGoToDown(robot))
+            {
+                robot.Direction = "D";
+            }
+        }
         // Check if cell is empty
         public bool IsCellEmpty(Coordonates coordonates)
         {
             return Cells[coordonates.Y][coordonates.X] == CellEmpty;
+        }
+        // check if cell is void
+        public bool IsCellVoid(Coordonates coordonates)
+        {
+            return Cells[coordonates.Y][coordonates.X] == CellVoid;
+        }
+        // check if cell right
+        public bool IsCellRight(Coordonates coordonates)
+        {
+            return Cells[coordonates.Y][coordonates.X] == CellRight;
+        }
+        // check if cell left
+        public bool IsCellLeft(Coordonates coordonates)
+        {
+            return Cells[coordonates.Y][coordonates.X] == CellLeft;
+        }
+        // check if cell up
+        public bool IsCellUp(Coordonates coordonates)
+        {
+            return Cells[coordonates.Y][coordonates.X] == CellUp;
+        }
+        // check if cell down
+        public bool IsCellDown(Coordonates coordonates)
+        {
+            return Cells[coordonates.Y][coordonates.X] == CellDown;
         }
         // Check if Coordonate is into the map
         public bool IsInTheMap(Coordonates coordonates)
@@ -104,6 +134,85 @@ class Player
                 && coordonates.Y > -1 
                 && coordonates.X > -1 
                 && coordonates.X < Cells[coordonates.Y].Count();
+        }
+        // Search path
+        public List<Robot> SearchBestPath(Robot robot, List<Robot> path)
+        {
+            if(!PossibleToGoToRight(robot) 
+                && !PossibleToGoToLeft(robot)
+                && !PossibleToGoToDown(robot)
+                && !PossibleToGoToUp(robot))
+            {
+                return path;
+            }
+            // variable du meileur chemin
+            var bestPath = path;
+            // possible d'aller a droite ? ou case fleche droite
+            if(PossibleToGoToRight(robot) || IsCellRight(robot.Coordonates))
+            {
+                // clone
+                var rightRobot = robot.Clone() as Robot;
+                var rightPath = new List<Robot>(path);
+                // simulate right move
+                rightRobot.Direction = "R";
+                rightRobot.Move();
+                rightPath.Add(rightRobot);
+                rightPath = SearchBestPath(rightRobot, rightPath);
+
+                if(bestPath.Count() < rightPath.Count())
+                {
+                    bestPath = rightPath;
+                }
+            }
+            // possible d'aller a gauche ? ou flech gauche
+            if(PossibleToGoToLeft(robot) || IsCellLeft(robot.Coordonates))
+            {
+                // clone
+                var leftRobot = robot.Clone() as Robot;
+                var leftPath = new List<Robot>(path);
+                // simulate left move
+                leftRobot.Direction = "L";
+                leftRobot.Move();
+                leftPath.Add(leftRobot);
+                leftPath = SearchBestPath(leftRobot, leftPath);
+                if(bestPath.Count() < leftPath.Count())
+                {
+                    bestPath = leftPath;
+                }
+            }
+            // possible d'aller en haut ? ou fleche haut
+            if(PossibleToGoToUp(robot) || IsCellUp(robot.Coordonates))
+            {
+                // clone
+                var upRobot = robot.Clone() as Robot;
+                var upPath = new List<Robot>(path);
+                // simulate up move
+                upRobot.Direction = "U";
+                upRobot.Move();
+                upPath.Add(upRobot);
+                upPath = SearchBestPath(upRobot, upPath);
+                if(bestPath.Count() < upPath.Count())
+                {
+                    bestPath = upPath;
+                }
+            }
+            // possible d'aller en bas ? ou fleche bas
+            if(PossibleToGoToDown(robot) || IsCellDown(robot.Coordonates))
+            {
+                // clone
+                var downRobot = robot.Clone() as Robot;
+                var downPath = new List<Robot>(path);
+                // simulate down move
+                downRobot.Direction = "D";
+                downRobot.Move();
+                downPath.Add(downRobot);
+                downPath = SearchBestPath(downRobot, downPath);
+                if(bestPath.Count() < downPath.Count())
+                {
+                    bestPath = downPath;
+                }
+            }
+            return bestPath;
         }
         // check if possible to move on
         public bool IsPossibleToMove(Coordonates newCoordinates)
@@ -115,32 +224,24 @@ class Player
         public bool PossibleToGoToRight(Robot robot)
         {
             var newCoordinates = new Coordonates{Y = robot.Coordonates.Y, X=robot.Coordonates.X+1};
-            System.Console.Error.WriteLine("ToRight " + newCoordinates);
-            System.Console.Error.WriteLine(IsPossibleToMove(newCoordinates));
             return IsPossibleToMove(newCoordinates) && !robot.LastCoordinates.Contains(newCoordinates);
         }
         // possible to go to the left
         public bool PossibleToGoToLeft(Robot robot)
         {
             var newCoordinates = new Coordonates{Y = robot.Coordonates.Y, X=robot.Coordonates.X-1};
-            System.Console.Error.WriteLine("ToLeft " + newCoordinates);
-            System.Console.Error.WriteLine(IsPossibleToMove(newCoordinates));
             return IsPossibleToMove(newCoordinates) && !robot.LastCoordinates.Contains(newCoordinates);
         }
         // possible to go to the up
         public bool PossibleToGoToUp(Robot robot)
         {
             var newCoordinates = new Coordonates{Y = robot.Coordonates.Y-1, X=robot.Coordonates.X};
-            System.Console.Error.WriteLine("ToUp " + newCoordinates);
-            System.Console.Error.WriteLine(IsPossibleToMove(newCoordinates));
             return IsPossibleToMove(newCoordinates) && !robot.LastCoordinates.Contains(newCoordinates);
         }
         // possible to go to the down
         public bool PossibleToGoToDown(Robot robot)
         {
             var newCoordinates = new Coordonates{Y = robot.Coordonates.Y+1, X=robot.Coordonates.X};
-            System.Console.Error.WriteLine("ToDown " + newCoordinates);
-            System.Console.Error.WriteLine(IsPossibleToMove(newCoordinates));
             return IsPossibleToMove(newCoordinates) && !robot.LastCoordinates.Contains(newCoordinates);
         }
     }
@@ -187,7 +288,7 @@ class Player
             return " X :" + X + " Y :" + Y;
         }
     }
-    class Robot
+    class Robot : ICloneable
     {
         public int ID { get; set; }
         // Direction du robot
@@ -230,6 +331,17 @@ class Player
         public string DisplayDirection()
         {
             return Coordonates.X + " " + Coordonates.Y + " " + Direction;
+        }
+        // methodes iclonable
+        public object Clone()
+        {
+            return new Robot
+            {
+                ID = this.ID,
+                Direction = this.Direction, 
+                Coordonates = this.Coordonates,
+                LastCoordinates = this.LastCoordinates
+            };
         }
     }
 }
