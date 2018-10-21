@@ -41,13 +41,7 @@ class Player
         }
         //Recuperation de mon robot
         var myRobot = map.Robots.FirstOrDefault();
-        var direction = "";
-        // premier mouvement a gerer
-        if(map.NeedToChangeDirection(myRobot))
-        {
-            map.ChangeToGoodDirection(myRobot);
-            direction = myRobot.DisplayDirection() + " ";
-        }
+        var direction = "";        
         System.Console.Error.WriteLine(myRobot);
         var path = map.SearchBestPath(myRobot,new List<Robot>());
         path.ForEach( r => 
@@ -150,67 +144,34 @@ class Player
             // possible d'aller a droite ? ou case fleche droite
             if(PossibleToGoToRight(robot) || IsCellRight(robot.Coordonates))
             {
-                // clone
-                var rightRobot = robot.Clone() as Robot;
-                var rightPath = new List<Robot>(path);
-                // simulate right move
-                rightRobot.Direction = "R";
-                rightRobot.Move();
-                rightPath.Add(rightRobot);
-                rightPath = SearchBestPath(rightRobot, rightPath);
-
-                if(bestPath.Count() < rightPath.Count())
-                {
-                    bestPath = rightPath;
-                }
-            }
-            // possible d'aller a gauche ? ou flech gauche
-            if(PossibleToGoToLeft(robot) || IsCellLeft(robot.Coordonates))
-            {
-                // clone
-                var leftRobot = robot.Clone() as Robot;
-                var leftPath = new List<Robot>(path);
-                // simulate left move
-                leftRobot.Direction = "L";
-                leftRobot.Move();
-                leftPath.Add(leftRobot);
-                leftPath = SearchBestPath(leftRobot, leftPath);
-                if(bestPath.Count() < leftPath.Count())
-                {
-                    bestPath = leftPath;
-                }
+                robot.Direction = "R";
             }
             // possible d'aller en haut ? ou fleche haut
-            if(PossibleToGoToUp(robot) || IsCellUp(robot.Coordonates))
+            else if(PossibleToGoToUp(robot) || IsCellUp(robot.Coordonates))
             {
-                // clone
-                var upRobot = robot.Clone() as Robot;
-                var upPath = new List<Robot>(path);
-                // simulate up move
-                upRobot.Direction = "U";
-                upRobot.Move();
-                upPath.Add(upRobot);
-                upPath = SearchBestPath(upRobot, upPath);
-                if(bestPath.Count() < upPath.Count())
-                {
-                    bestPath = upPath;
-                }
+                robot.Direction = "U";
+            }
+            // possible d'aller a gauche ? ou flech gauche
+            else if(PossibleToGoToLeft(robot) || IsCellLeft(robot.Coordonates))
+            {
+                robot.Direction = "L";
             }
             // possible d'aller en bas ? ou fleche bas
-            if(PossibleToGoToDown(robot) || IsCellDown(robot.Coordonates))
+            else if(PossibleToGoToDown(robot) || IsCellDown(robot.Coordonates))
             {
-                // clone
-                var downRobot = robot.Clone() as Robot;
-                var downPath = new List<Robot>(path);
-                // simulate down move
-                downRobot.Direction = "D";
-                downRobot.Move();
-                downPath.Add(downRobot);
-                downPath = SearchBestPath(downRobot, downPath);
-                if(bestPath.Count() < downPath.Count())
-                {
-                    bestPath = downPath;
-                }
+                robot.Direction = "D";
+            }
+            System.Console.Error.WriteLine("debug :" + robot);
+            var clone = robot.Clone() as Robot;
+            // simulate right move
+            clone.Move();
+            path.Add(robot);
+            System.Console.Error.WriteLine("move :" + clone);
+            path = SearchBestPath(clone, path);
+
+            if(bestPath.Count() < path.Count())
+            {
+                bestPath = path;
             }
             return bestPath;
         }
@@ -218,7 +179,7 @@ class Player
         public bool IsPossibleToMove(Coordonates newCoordinates)
         {
             return IsInTheMap(newCoordinates)
-                && IsCellEmpty(newCoordinates);
+                && !IsCellVoid(newCoordinates);
         }
         // possible to go to the right
         public bool PossibleToGoToRight(Robot robot)
